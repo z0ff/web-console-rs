@@ -10,6 +10,7 @@ use sys_info::*;
 
 //static outstr: OnceCell<String> = OnceCell::new();
 
+
 #[get("/")]
 async fn index() -> Result<NamedFile> {
     Ok(NamedFile::open("static/index.html")?)

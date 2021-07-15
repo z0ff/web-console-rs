@@ -5,10 +5,23 @@
 </head>
 <body>
     <h3>command</h3>
-    <textarea readonly cols="120" rows="20" style="overflow:scroll;">a</textarea>
+    <textarea readonly cols="120" rows="20" style="overflow:scroll;" id="output"></textarea>
     <form>
-        <input type="text" size="110" />
-        <input type="button" value="execute" />
+        <input type="text" size="110" id="inputCommand" />
+        <input type="button" value="Send" id="sendButton" />
     </form>
+
+    <script>
+        function sendCommand() {
+            output.value += '$ ' + inputCommand.value + '\n';
+            sendButton.disabled = true;
+        }
+
+        let inputCommand = document.getElementById('inputCommand');
+        let output = document.getElementById('output');
+
+        let sendButton = document.getElementById('sendButton');
+        sendButton.addEventListener('click', sendCommand);
+    </script>
 </body>
 </html>
