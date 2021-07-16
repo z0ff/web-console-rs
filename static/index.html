@@ -6,22 +6,18 @@
 <body>
     <h3>command</h3>
     <textarea readonly cols="120" rows="20" style="overflow:scroll;" id="output"></textarea>
-    <form>
+    <form onsubmit="return false">
         <input type="text" size="110" id="inputCommand" />
-        <input type="button" value="Send" id="sendButton" />
+        <input type="submit" value="Send" id="sendButton" onclick="sendCommand()" />
     </form>
 
     <script>
         function sendCommand() {
-            output.value += '$ ' + inputCommand.value + '\n';
             sendButton.disabled = true;
+            output.value += '$ ' + inputCommand.value + '\n';
         }
-
         let inputCommand = document.getElementById('inputCommand');
         let output = document.getElementById('output');
-
-        let sendButton = document.getElementById('sendButton');
-        sendButton.addEventListener('click', sendCommand);
     </script>
 </body>
 </html>
