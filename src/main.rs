@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 //use std::lazy::OnceCell;
 use actix::prelude::*;
 use actix_files::NamedFile;
-use actix_web::{get, web, App, HttpRequest, HttpServer, Responder, Result};
+use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder, Result};
 use actix_web_actors::ws;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
@@ -49,8 +49,26 @@ async fn sh(web::Path(cmd): web::Path<String>) -> impl Responder {
 }
 
 #[get("/status")]
-async fn status() -> impl Responder {
-    format!("os: {} {}", os_type().unwrap(), os_release().unwrap())
+async fn status() -> HttpResponse {
+    let load = loadavg().unwrap();
+    let mem = mem_info().unwrap();
+    HttpResponse::Ok().json(Status {
+        os_type: os_type().unwrap(),
+        os_release: os_release().unwrap(),
+        cpu_num: cpu_num().unwrap(),
+        cpu_speed: cpu_speed().unwrap(),
+        proc_total: proc_total().unwrap(),
+        load_one: load.one,
+        load_five: load.five,
+        load_fifteen: load.fifteen,
+        mem_total: mem.total,
+        mem_free: mem.free,
+        mem_avail: mem.avail,
+        mem_buffers: mem.buffers,
+        mem_cached: mem.cached,
+        mem_swap_total: mem.swap_total,
+        mem_swap_free: mem.swap_free,
+    })
 }
 
 #[actix_web::main]
