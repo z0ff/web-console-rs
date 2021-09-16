@@ -1948,6 +1948,8 @@ dependencies = [
  "actix-web-actors",
  "once_cell",
  "openssl",
+ "serde",
+ "serde_json",
  "sys-info",
 ]
 
