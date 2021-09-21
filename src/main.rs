@@ -7,12 +7,12 @@ use actix_files::NamedFile;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder, Result};
 use actix_web_actors::ws;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sys_info::*;
 
 //static outstr: OnceCell<String> = OnceCell::new();
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Status {
     os_type: String,
     os_release: String,
