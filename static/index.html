@@ -1,23 +1,126 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8" />
 </head>
+
 <body>
-    <h3>command</h3>
-    <textarea readonly cols="120" rows="20" style="overflow:scroll;" id="output"></textarea>
+    <h3>shell</h3>
+    <textarea readonly cols="120" rows="40" style="overflow:scroll;" id="output"></textarea>
     <form onsubmit="return false">
         <input type="text" size="110" id="inputCommand" />
         <input type="submit" value="Send" id="sendButton" onclick="sendCommand()" />
     </form>
+    <h4>Server OS</h4>
+    <p><span id="osType">null</span></p>
+    <p><span id="osRelease">null</span></p>
+    <h4>CPU</h4>
+    <p>num : <span id="cpuNum">null</span></p>
+    <p>speed : <span id="cpuSpeed">null</span></p>
+    <p>proc_total : <span id="cpuProcTotal">null</span></p>
+    <p>load_one : <span id="cpuLoadOne">null</span></p>
+    <p>load_five : <span id="cpuLoadFive">null</span></p>
+    <p>load_fifteen : <span id="cpuLoadFifteen">null</span></p>
+    <h4>Memory</h4>
+    <p>total : <span id="memTotal">null</span></p>
+    <p>free : <span id="memFree">null</span></p>
+    <p>avail : <span id="memAvail">null</span></p>
+    <p>buffers : <span id="memBuffers">null</span></p>
+    <p>cached : <span id="memCached">null</span></p>
+    <p>swap_total : <span id="swapTotal">null</span></p>
+    <p>swap_free : <span id="swapFree">null</span></p>
 
     <script>
+        function wait(t) {
+            return new Promise(resolve => setTimeout(resolve, t));
+        }
+
         function sendCommand() {
             sendButton.disabled = true;
             output.value += '$ ' + inputCommand.value + '\n';
+
+            var postData = { 'cmd': inputCommand.value.toString() };
+            var postTxt = JSON.stringify(postData);
+
+            inputCommand.value = '';
+
+            var postreq = new XMLHttpRequest();
+            postreq.open('POST', 'https://127.0.0.1:8080/postcmd');
+            postreq.setRequestHeader('content-type', 'application/json');
+            postreq.send(postTxt);
+
+            /*
+            var getreq = new XMLHttpRequest();
+            getreq.open('GET', 'https://127.0.0.1:8080/getcmd');
+            getreq.send();
+            */
+
+            postreq.onreadystatechange = function () {
+                if (postreq.readyState != 4) {
+                    console.log("readyState != 4");
+                } else if (postreq.status != 200) {
+                    console.log("failed");
+                } else {
+                    var resultData = JSON.parse(postreq.responseText);
+                    output.value += resultData.res + '\n';
+                    output.scrollTop = output.scrollHeight;
+                    sendButton.disabled = false;
+                }
+            }
+        }
+        async function getStatus() {
+            var getreq = new XMLHttpRequest();
+            getreq.open('GET', 'https://127.0.0.1:8080/status');
+            getreq.send();
+
+            getreq.onreadystatechange = function () {
+                if (getreq.readyState != 4) {
+                    console.log("readyState != 4");
+                } else if (getreq.status != 200) {
+                    console.log("failed");
+                } else {
+                    var statusData = JSON.parse(getreq.responseText);
+                    var elem = document.getElementById("osType");
+                    elem.innerText = statusData.os_type;
+                    var elem = document.getElementById("osRelease");
+                    elem.innerText = statusData.os_release;
+                    var elem = document.getElementById("cpuNum");
+                    elem.innerText = statusData.cpu_num;
+                    var elem = document.getElementById("cpuSpeed");
+                    elem.innerText = statusData.cpu_speed;
+                    var elem = document.getElementById("cpuProcTotal");
+                    elem.innerText = statusData.proc_total;
+                    var elem = document.getElementById("cpuLoadOne");
+                    elem.innerText = statusData.load_one;
+                    var elem = document.getElementById("cpuLoadFive");
+                    elem.innerText = statusData.load_five;
+                    var elem = document.getElementById("cpuLoadFifteen");
+                    elem.innerText = statusData.load_fifteen;
+                    var elem = document.getElementById("memTotal");
+                    elem.innerText = statusData.mem_total;
+                    var elem = document.getElementById("memFree");
+                    elem.innerText = statusData.mem_free;
+                    var elem = document.getElementById("memAvail");
+                    elem.innerText = statusData.mem_avail;
+                    var elem = document.getElementById("memBuffers");
+                    elem.innerText = statusData.mem_buffers;
+                    var elem = document.getElementById("memCached");
+                    elem.innerText = statusData.mem_cached;
+                    var elem = document.getElementById("swapTotal");
+                    elem.innerText = statusData.mem_swap_total;
+                    var elem = document.getElementById("swapFree");
+                    elem.innerText = statusData.mem_swap_free;
+                }
+            }
+
+            await wait(5000);
+            getStatus();
         }
         let inputCommand = document.getElementById('inputCommand');
         let output = document.getElementById('output');
+        getStatus();
     </script>
 </body>
+
 </html>

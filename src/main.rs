@@ -1,16 +1,41 @@
+use std::future::{ready, Ready};
 use std::process::Command;
-use std::time::{Duration, Instant};
+//use std::time::{Duration, Instant};
 //use once_cell::sync::OnceCell;
 //use std::lazy::OnceCell;
-use actix::prelude::*;
+//use actix::prelude::*;
 use actix_files::NamedFile;
-use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder, Result};
-use actix_web_actors::ws;
+use actix_web::{
+    get, post, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder, Result,
+};
+//use actix_web_actors::ws;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::{Deserialize, Serialize};
 use sys_info::*;
 
 //static outstr: OnceCell<String> = OnceCell::new();
+
+#[derive(Deserialize)]
+struct Cmd {
+    cmd: String,
+}
+
+#[derive(Serialize)]
+struct Res {
+    res: String,
+}
+
+impl Responder for Res {
+    type Error = Error;
+    type Future = Ready<Result<HttpResponse, Error>>;
+
+    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+        let body = serde_json::to_string(&self).unwrap();
+        ready(Ok(HttpResponse::Ok()
+            .content_type("application/json")
+            .body(body)))
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct Status {
@@ -32,21 +57,31 @@ struct Status {
 }
 
 #[get("/")]
-async fn index() -> Result<NamedFile> {
+async fn index(req: HttpRequest) -> Result<NamedFile> {
+    println!("{:?}", req);
     Ok(NamedFile::open("static/index.html")?)
 }
 
-#[get("/sh/{cmd}")]
-async fn sh(web::Path(cmd): web::Path<String>) -> impl Responder {
+#[post("/postcmd")]
+async fn postcmd(cmd: web::Json<Cmd>) -> impl Responder {
     let output = Command::new("bash")
         .arg("-c")
-        .arg(&cmd)
+        .arg(&cmd.cmd)
         .output()
         .expect("Failed to excecute command");
-    //outstr.set(format!("$ {}\n{}", &cmd, String::from_utf8_lossy(&output.stdout))).unwrap();
-    //format!("{}", outstr.get().unwrap())
-    format!("$ {}\n{}", &cmd, String::from_utf8_lossy(&output.stdout))
+    Res {
+        res: String::from_utf8_lossy(&output.stdout).into_owned(),
+    }
 }
+
+/*
+#[get("/getcmd")]
+async fn getres() -> HttpResponse {
+    HttpResponse::Ok().json(Res {
+        res: "response".to_string(),
+    })
+}
+*/
 
 #[get("/status")]
 async fn status() -> HttpResponse {
@@ -71,7 +106,7 @@ async fn status() -> HttpResponse {
     })
 }
 
-#[actix_web::main]
+#[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     // load ssl keys
     // to create a self-signed temporary cert for testing:
@@ -82,7 +117,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     builder.set_certificate_chain_file("cert.pem").unwrap();
 
-    HttpServer::new(|| App::new().service(index).service(sh).service(status))
+    HttpServer::new(|| App::new().service(index).service(status).service(postcmd))
         .bind_openssl("127.0.0.1:8080", builder)?
         .run()
         .await

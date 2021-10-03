@@ -1944,6 +1944,7 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "actix-files",
+ "actix-rt",
  "actix-web",
  "actix-web-actors",
  "once_cell",
