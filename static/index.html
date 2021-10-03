@@ -69,6 +69,7 @@
                 }
             }
         }
+
         async function getStatus() {
             var getreq = new XMLHttpRequest();
             getreq.open('GET', 'https://127.0.0.1:8080/status');
@@ -117,6 +118,7 @@
             await wait(5000);
             getStatus();
         }
+
         let inputCommand = document.getElementById('inputCommand');
         let output = document.getElementById('output');
         getStatus();
