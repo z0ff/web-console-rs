@@ -1,3 +1,7 @@
+pub mod script;
+
+use crate::script::*;
+
 use std::future::{ready, Ready};
 use std::process::Command;
 //use std::time::{Duration, Instant};
@@ -117,7 +121,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     builder.set_certificate_chain_file("cert.pem").unwrap();
 
-    HttpServer::new(|| App::new().service(index).service(status).service(postcmd))
+    HttpServer::new(|| App::new().service(index).service(status).service(postcmd).service(script_index))
         .bind_openssl("127.0.0.1:8080", builder)?
         .run()
         .await
