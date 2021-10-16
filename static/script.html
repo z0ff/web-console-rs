@@ -19,10 +19,24 @@
                 var postTxt = JSON.stringify(postData);
                 //console.log(postTxt);
 
+                if (!isEstalbished) {
+                    console.log("Connection is not estalbished.");
+                    return;
+                }
+
+                webSocket.send(postTxt);
+                /*
                 var postreq = new XMLHttpRequest();
                 postreq.open('POST', 'https://127.0.0.1:8080/script/postscript');
                 postreq.setRequestHeader('content-type', 'application/json');
                 postreq.send(postTxt);
+                */
+            }
+            
+            var isEstalbished = false; 
+            webSocket = new WebSocket((window.location.protocol=='https:'&&'wss://'||'ws://')+window.location.host + '/script/ws/');
+            webSocket.onopen = function(event) {
+                isEstalbished = true;
             }
             let inputScript = document.getElementById('input');
         </script>
