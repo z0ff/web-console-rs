@@ -14,6 +14,10 @@ use tokio_util::codec::{FramedRead, LinesCodec};
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
+#[derive(Message)]
+#[rtype(result = "Result<(), ()>")]
+struct ScriptExecutor(String);
+
 struct MyWS {
     hb: Instant,
 }
@@ -45,7 +49,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
             //Ok(ws::Message::Text(text)) => ctx.text(text),
             Ok(ws::Message::Text(text)) => {
                 //#[must_use = "futures do nothing unless you `.await` or poll them"]
-                exec_script(text, ctx);
+                //exec_script(text, ctx);
                 //ctx.text(text);
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
@@ -55,6 +59,27 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
             }
             _ => ctx.stop(),
         }
+    }
+}
+
+impl Handler<ScriptExecutor> for MyWS {
+    type Result = Result<(), ()>;
+    fn handle(&mut self, msg: ScriptExecutor, ctx: &mut Self::Context) -> Self::Result {
+        let script: Script = serde_json::from_str(msg.0.trim()).unwrap();
+        for ln in &script.lines {
+            let mut cmd = Command::new("bash").arg("-c").arg(ln);
+            cmd.stdout(Stdio::piped());
+            let mut child = cmd.spawn().expect("err");
+
+            let stdout = child.stdout.take().unwrap();
+
+            let mut reader = FramedRead::new(stdout, LinesCodec::new());
+
+            let fut = async move {
+                let status = child.spawn().await.expect("err");
+            };
+        }
+        Ok(())
     }
 }
 
