@@ -13,7 +13,8 @@
 
     <script>
         function sendScript() {
-            var lines = inputScript.value.toString().split('\n');
+            
+            var lines = inputScript.value.toString();
             //console.log(lines);
             var postData = { 'lines': lines };
             //console.log(postData);
@@ -25,6 +26,7 @@
                 return;
             }
 
+            //webSocket.send(postTxt);
             webSocket.send(postTxt);
             /*
             var postreq = new XMLHttpRequest();
@@ -42,6 +44,7 @@
         let inputScript = document.getElementById('input');
         webSocket.onmessage = function (event) {
             console.log(event.data)
+            
         }
     </script>
 </body>
