@@ -26,22 +26,20 @@ struct MyWS {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Script {
+    user: String,
     lines: String,
 }
 
-#[derive(Debug)]
-struct OutLn(String);
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct OutLn {
+    line: String,
+}
+impl Handler<OutLn> for MyWS {
+    type Result = ();
 
-impl StreamHandler<Result<OutLn, ws::ProtocolError>> for MyWS {
-    fn handle(
-        &mut self,
-        msg: Result<OutLn, ws::ProtocolError>,
-        ctx: &mut Self::Context,
-    ) {
-        match msg {
-            Ok(OutLn(line)) => ctx.text(line),
-            _ => ()
-        }
+    fn handle(&mut self, msg: OutLn, ctx: &mut Self::Context) {
+        ctx.text(msg.line);
     }
 }
 
@@ -64,12 +62,30 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
             Ok(ws::Message::Pong(_)) => {
                 self.hb = Instant::now();
             }
-            //Ok(ws::Message::Text(text)) => ctx.text(text),
             Ok(ws::Message::Text(text)) => {
-                //#[must_use = "futures do nothing unless you `.await` or poll them"]
-                //exec_script(text, ctx);
-                //ctx.text(text);
-                ctx.notify(ScriptExecutor(text.to_string()));
+                //ctx.notify(ScriptExecutor(text.to_string()));
+                let rec = ctx.address().recipient();
+                let fut = async move {
+                    let script: Script = serde_json::from_str(text.trim()).unwrap();
+                    let mut child = Command::new("bash")
+                        .arg("-c")
+                        .arg(&script.lines)
+                        .stdout(Stdio::piped())
+                        .spawn()
+                        .expect("Failed to execute command");
+
+                    let stdout = child.stdout.take().unwrap();
+
+                    let mut reader = FramedRead::new(stdout, LinesCodec::new());
+
+                    while let Some(line) = reader.next().await {
+                        //println!("{}", line.unwrap());
+                        rec.do_send(OutLn { line:line.unwrap() } );
+    
+                    }
+                };
+
+                fut.into_actor(self).spawn(ctx);
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
             Ok(ws::Message::Close(reason)) => {
@@ -78,36 +94,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
             }
             _ => ctx.stop(),
         }
-    }
-}
-
-impl Handler<ScriptExecutor> for MyWS {
-    type Result = Result<(), ()>;
-    fn handle(&mut self, msg: ScriptExecutor, ctx: &mut Self::Context) -> Self::Result {
-        let script: Script = serde_json::from_str(msg.0.trim()).unwrap();
-        let mut child = Command::new("bash")
-            .arg("-c")
-            .arg(&script.lines)
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("Failde");
-        //let mut cmd = Command::new(script.lines);
-        //cmd.stdout(Stdio::piped());
-        //let mut child = cmd.spawn().expect("err");
-
-        let stdout = child.stdout.take().unwrap();
-
-        let reader = FramedRead::new(stdout, LinesCodec::new());
-        //let reader = BufReader::new(stdout).lines();
-
-        let fut = async move {
-            let status = child.await.expect("err");
-            println!("child status was: {}", status);
-        };
-        let fut = actix::fut::wrap_future::<_, Self>(fut);
-        ctx.spawn(fut);
-        ctx.add_stream(reader.map(|l| Ok(OutLn(l.expect("Not a line")))));
-        Ok(())
     }
 }
 

@@ -8,15 +8,29 @@
 
 <body>
     <h3>Execute bash script</h3>
+    <p>Your E-mail address <input type="text" id="email"></p>
     <textarea cols="120" rows="40" style="overflow:scroll" id="input"></textarea>
     <button type="submit" id="sendButtion" onclick="sendScript()">Send</button>
 
     <script>
+        async function digestMessage(message) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(message);
+            const hashBuf = await crypto.subtle.digest('SHA-512', data);
+            const hashArr = Array.from(new Uint8Array(hashBuf));
+            const hashHex = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
         function sendScript() {
-            
+            var emailHash = await digestMessage(inputEmail.value.toString());
+
             var lines = inputScript.value.toString();
             //console.log(lines);
-            var postData = { 'lines': lines };
+            var postData = {
+                'user': emailHash,
+                'lines': lines
+            };
             //console.log(postData);
             var postTxt = JSON.stringify(postData);
             //console.log(postTxt);
@@ -41,6 +55,7 @@
         webSocket.onopen = function (event) {
             isEstalbished = true;
         }
+        let inputEmail = document.getElementById('email')
         let inputScript = document.getElementById('input');
         webSocket.onmessage = function (event) {
             console.log(event.data)
