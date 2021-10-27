@@ -8,11 +8,16 @@
 
 <body>
     <h3>Execute bash script</h3>
-    <p>Your E-mail address <input type="text" id="email"></p>
-    <textarea cols="120" rows="40" style="overflow:scroll" id="input"></textarea>
-    <button type="submit" id="sendButtion" onclick="sendScript()">Send</button>
+    <!-- ><p>Your E-mail address <input type="text" id="email"></p><-->
+    <textarea cols="25" rows="12" id="input" style="overflow:scroll; font-family:monospace; font-size:30px;"></textarea>
+    <textarea readonly cols="25" rows="12" id="output" style="overflow:scroll; font-family:monospace; font-size:30px;"></textarea>
+    <br>
+    <button type="submit" id="sendButtion" onclick="sendScript()" style="font-size: 20px;">Send</button>
+    <button type="submit" id="clearButtion" onclick="clearOutput()" style="font-size: 20px;">Clear</button>
+
 
     <script>
+        /*
         async function digestMessage(message) {
             const encoder = new TextEncoder();
             const data = encoder.encode(message);
@@ -21,14 +26,15 @@
             const hashHex = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
             return hashHex;
         }
+        */
 
         function sendScript() {
-            var emailHash = await digestMessage(inputEmail.value.toString());
+            //var emailHash = await digestMessage(inputEmail.value.toString());
 
             var lines = inputScript.value.toString();
             //console.log(lines);
             var postData = {
-                'user': emailHash,
+                //'user': emailHash,
                 'lines': lines
             };
             //console.log(postData);
@@ -50,16 +56,22 @@
             */
         }
 
+        function clearOutput() {
+            output.value = "";
+        }
+
         var isEstalbished = false;
         webSocket = new WebSocket((window.location.protocol == 'https:' && 'wss://' || 'ws://') + window.location.host + '/script/ws/');
         webSocket.onopen = function (event) {
             isEstalbished = true;
         }
-        let inputEmail = document.getElementById('email')
+        //let inputEmail = document.getElementById('email')
         let inputScript = document.getElementById('input');
+        let output = document.getElementById('output');
         webSocket.onmessage = function (event) {
-            console.log(event.data)
-            
+            console.log(event.data);
+            output.value += event.data + '\n';
+            output.scrollTop = output.scrollHeight;
         }
     </script>
 </body>

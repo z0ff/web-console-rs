@@ -16,17 +16,13 @@ use tokio_util::codec::{FramedRead, LinesCodec};
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
-#[derive(Message)]
-#[rtype(result = "Result<(), ()>")]
-struct ScriptExecutor(String);
-
 struct MyWS {
     hb: Instant,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Script {
-    user: String,
+    //user: String,
     lines: String,
 }
 
@@ -63,7 +59,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
                 self.hb = Instant::now();
             }
             Ok(ws::Message::Text(text)) => {
-                //ctx.notify(ScriptExecutor(text.to_string()));
                 let rec = ctx.address().recipient();
                 let fut = async move {
                     let script: Script = serde_json::from_str(text.trim()).unwrap();
@@ -80,11 +75,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
 
                     while let Some(line) = reader.next().await {
                         //println!("{}", line.unwrap());
-                        rec.do_send(OutLn { line:line.unwrap() } );
-    
+                        rec.do_send(OutLn { line:line.unwrap() } ).expect("Failed to send stdout.");
                     }
                 };
-
                 fut.into_actor(self).spawn(ctx);
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),

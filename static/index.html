@@ -31,6 +31,9 @@
     <p>swap_total : <span id="swapTotal">null</span></p>
     <p>swap_free : <span id="swapFree">null</span></p>
 
+    <canvas id="memUsageChart"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.0/chart.js" integrity="sha512-CWVDkca3f3uAWgDNVzW+W4XJbiC3CH84P2aWZXj+DqI6PNbTzXbl1dIzEHeNJpYSn4B6U8miSZb/hCws7FnUZA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <script>
         function wait(t) {
             return new Promise(resolve => setTimeout(resolve, t));
@@ -112,6 +115,10 @@
                     elem.innerText = statusData.mem_swap_total;
                     var elem = document.getElementById("swapFree");
                     elem.innerText = statusData.mem_swap_free;
+
+                    memChart.data.datasets[0].data[1] = statusData.mem_free;
+                    memChart.data.datasets[0].data[0] = statusData.mem_total - statusData.mem_free;
+                    
                 }
             }
 
@@ -121,6 +128,30 @@
 
         let inputCommand = document.getElementById('inputCommand');
         let output = document.getElementById('output');
+
+        let memUsedVar = 0;
+        let memFreeVar = 0;
+        let memChartCtx = document.getElementById('memUsageChart');
+        let memChart = new Chart(memChartCtx, {
+            type: 'pie',
+            data: {
+                labels: ["Used", "Free"],
+                datasets: [{
+                    backgroundcolor: [
+                        "#00bfff",
+                        "#a9a9a9"
+                    ],
+                    data: [0, 0]
+                }]
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: "Memory usage"
+                }
+            }
+        });
+        
         getStatus();
     </script>
 </body>

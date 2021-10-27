@@ -1981,6 +1981,7 @@ dependencies = [
  "actix-rt",
  "actix-web",
  "actix-web-actors",
+ "async-trait",
  "futures",
  "once_cell",
  "openssl",
