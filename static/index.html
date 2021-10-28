@@ -19,21 +19,31 @@
     <p>num : <span id="cpuNum">null</span></p>
     <p>speed : <span id="cpuSpeed">null</span></p>
     <p>proc_total : <span id="cpuProcTotal">null</span></p>
+    <p>user : <span id="cpuUser">null</span></p>
+    <p>nice : <span id="cpuNice">null</span></p>
+    <p>system : <span id="cpuSystem">null</span></p>
+    <p>idle : <span id="cpuIdle">null</span></p>
     <p>load_one : <span id="cpuLoadOne">null</span></p>
     <p>load_five : <span id="cpuLoadFive">null</span></p>
     <p>load_fifteen : <span id="cpuLoadFifteen">null</span></p>
     <h4>Memory</h4>
     <p>total : <span id="memTotal">null</span></p>
     <p>free : <span id="memFree">null</span></p>
-    <p>avail : <span id="memAvail">null</span></p>
-    <p>buffers : <span id="memBuffers">null</span></p>
-    <p>cached : <span id="memCached">null</span></p>
-    <p>swap_total : <span id="swapTotal">null</span></p>
-    <p>swap_free : <span id="swapFree">null</span></p>
 
-    <div class="chart-container" style="position: relative; height:20vh; width:20vw">
-        <canvas id="memUsageChart"></canvas>
+    <div style="display:flex">
+    <div class="chart-wrap" style="position: relative; height:20vh; width:20vw">
+        <canvas id="cpuUsageChart"></canvas>
+        <p>CPU Usage</p>
+        <p id="cpuUsage"></p>
     </div>
+
+    <div class="chart-wrap" style="height:20vh; width:20vw">
+        <canvas id="memUsageChart"></canvas>
+        <p>Memory Usage</p>
+        <p id="memUsage"></p>
+    </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.0/chart.js"
         integrity="sha512-CWVDkca3f3uAWgDNVzW+W4XJbiC3CH84P2aWZXj+DqI6PNbTzXbl1dIzEHeNJpYSn4B6U8miSZb/hCws7FnUZA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -99,6 +109,14 @@
                     elem.innerText = statusData.cpu_speed;
                     var elem = document.getElementById("cpuProcTotal");
                     elem.innerText = statusData.proc_total;
+                    var elem = document.getElementById("cpuUser");
+                    elem.innerText = statusData.cpu_user;
+                    var elem = document.getElementById("cpuNice");
+                    elem.innerText = statusData.cpu_nice;
+                    var elem = document.getElementById("cpuSystem");
+                    elem.innerText = statusData.cpu_system;
+                    var elem = document.getElementById("cpuIdle");
+                    elem.innerText = statusData.cpu_idle;
                     var elem = document.getElementById("cpuLoadOne");
                     elem.innerText = statusData.load_one;
                     var elem = document.getElementById("cpuLoadFive");
@@ -109,19 +127,17 @@
                     elem.innerText = statusData.mem_total;
                     var elem = document.getElementById("memFree");
                     elem.innerText = statusData.mem_free;
-                    var elem = document.getElementById("memAvail");
-                    elem.innerText = statusData.mem_avail;
-                    var elem = document.getElementById("memBuffers");
-                    elem.innerText = statusData.mem_buffers;
-                    var elem = document.getElementById("memCached");
-                    elem.innerText = statusData.mem_cached;
-                    var elem = document.getElementById("swapTotal");
-                    elem.innerText = statusData.mem_swap_total;
-                    var elem = document.getElementById("swapFree");
-                    elem.innerText = statusData.mem_swap_free;
+
+                    cpuChart.data.datasets[0].data[1] = statusData.cpu_idle;
+                    cpuChart.data.datasets[0].data[0] = 1 - statusData.cpu_idle;
 
                     memChart.data.datasets[0].data[1] = statusData.mem_free;
                     memChart.data.datasets[0].data[0] = statusData.mem_total - statusData.mem_free;
+
+                    var elem = document.getElementById("cpuUsage");
+                    elem.innerText = (100 - statusData.cpu_idle * 100) + "%";
+                    var elem = document.getElementById("memUsage");
+                    elem.innerText = (statusData.mem_total - statusData.mem_free) + "/" + statusData.mem_total;
 
                 }
             }
@@ -135,6 +151,28 @@
 
         let memUsedVar = 0;
         let memFreeVar = 0;
+
+        let cpuChartCtx = document.getElementById('cpuUsageChart');
+        let cpuChart = new Chart(cpuChartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ["Active", "Idle"],
+                datasets: [{
+                    backgroundColor: [
+                        "#00fa9a",
+                        "#a9a9a9"
+                    ],
+                    data: [0, 0]
+                }]
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: 'CPU usage'
+                }
+            }
+        });
+
         let memChartCtx = document.getElementById('memUsageChart');
         let memChart = new Chart(memChartCtx, {
             type: 'doughnut',
@@ -151,7 +189,7 @@
             options: {
                 title: {
                     display: true,
-                    text: "Memory usage"
+                    text: 'Memory usage'
                 }
             }
         });
