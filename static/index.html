@@ -130,9 +130,11 @@
 
                     cpuChart.data.datasets[0].data[1] = statusData.cpu_idle;
                     cpuChart.data.datasets[0].data[0] = 1 - statusData.cpu_idle;
+                    cpuChart.update();
 
                     memChart.data.datasets[0].data[1] = statusData.mem_free;
                     memChart.data.datasets[0].data[0] = statusData.mem_total - statusData.mem_free;
+                    memChart.update();
 
                     var elem = document.getElementById("cpuUsage");
                     elem.innerText = (100 - statusData.cpu_idle * 100) + "%";
