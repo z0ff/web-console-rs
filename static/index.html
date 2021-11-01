@@ -30,18 +30,16 @@
     <p>total : <span id="memTotal">null</span></p>
     <p>free : <span id="memFree">null</span></p>
 
-    <div style="display:flex">
-    <div class="chart-wrap" style="position: relative; height:20vh; width:20vw">
-        <canvas id="cpuUsageChart"></canvas>
-        <p>CPU Usage</p>
-        <p id="cpuUsage"></p>
-    </div>
+    <div style="display:flex; margin: 30px; padding: 30px;">
+        <div class="chart-wrap" style="position: relative; height:300px; width: 300px;">
+            <canvas id="cpuUsageChart"></canvas>
+            <p id="cpuUsage">CPU Usage: </p>
+        </div>
 
-    <div class="chart-wrap" style="height:20vh; width:20vw">
-        <canvas id="memUsageChart"></canvas>
-        <p>Memory Usage</p>
-        <p id="memUsage"></p>
-    </div>
+        <div class="chart-wrap" style="height:300px; width:300px">
+            <canvas id="memUsageChart"></canvas>
+            <p id="memUsage">Memory Usage: </p>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.0/chart.js"
@@ -128,8 +126,10 @@
                     var elem = document.getElementById("memFree");
                     elem.innerText = statusData.mem_free;
 
-                    cpuChart.data.datasets[0].data[1] = statusData.cpu_idle;
-                    cpuChart.data.datasets[0].data[0] = 1 - statusData.cpu_idle;
+                    cpuChart.data.datasets[0].data[0] = statusData.cpu_user;
+                    cpuChart.data.datasets[0].data[1] = statusData.cpu_nice;
+                    cpuChart.data.datasets[0].data[2] = statusData.cpu_system;
+                    cpuChart.data.datasets[0].data[3] = statusData.cpu_idle;
                     cpuChart.update();
 
                     memChart.data.datasets[0].data[1] = statusData.mem_free;
@@ -137,9 +137,9 @@
                     memChart.update();
 
                     var elem = document.getElementById("cpuUsage");
-                    elem.innerText = (100 - statusData.cpu_idle * 100) + "%";
+                    elem.innerText = "CPU Usage: " + (Math.round(10000 - statusData.cpu_idle * 10000) / 100) + "%";
                     var elem = document.getElementById("memUsage");
-                    elem.innerText = (statusData.mem_total - statusData.mem_free) + "/" + statusData.mem_total;
+                    elem.innerText = "Memory Usage: " + (Math.round((statusData.mem_total - statusData.mem_free) / 10000000) / 100) + "GB /" + (Math.round(statusData.mem_total / 10000000) / 100) + "GB";
 
                 }
             }
@@ -158,19 +158,31 @@
         let cpuChart = new Chart(cpuChartCtx, {
             type: 'doughnut',
             data: {
-                labels: ["Active", "Idle"],
+                labels: ["User", "Nice", "System", "Idle"],
                 datasets: [{
                     backgroundColor: [
                         "#00fa9a",
+                        "#ff8c00",
+                        "#8a2be2",
                         "#a9a9a9"
                     ],
-                    data: [0, 0]
+                    data: [0, 0, 0, 0]
                 }]
             },
             options: {
-                title: {
-                    display: true,
-                    text: 'CPU usage'
+                responsive: false,
+                cutoutPercentage: 50,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'CPU Usage',
+                        font: {
+                            size: 20
+                        }
+                    },
+                    legend: {
+                        position: 'right'
+                    }
                 }
             }
         });
@@ -189,9 +201,19 @@
                 }]
             },
             options: {
-                title: {
-                    display: true,
-                    text: 'Memory usage'
+                responsive: false,
+                cutoutPercentage: 50,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Memory Usage',
+                        font: {
+                            size: 20
+                        }
+                    },
+                    legend: {
+                        position: 'right'
+                    }
                 }
             }
         });
