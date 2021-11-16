@@ -5,7 +5,9 @@ use actix_web::{
     get, post, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder, Result,
 };
 use actix_web_actors::ws;
+use actix_redis::{Command as RCmd, RedisActor};
 //use futures::prelude::*;
+use redis_async::{resp::RespValue, resp_array};
 use serde::{Deserialize, Serialize};
 use std::process::Stdio;
 use std::time::{Duration, Instant};
@@ -48,7 +50,7 @@ impl Actor for MyWS {
 }
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
-    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError,>, ctx: &mut Self::Context) {
         println!("WS: {:?}", msg);
         match msg {
             Ok(ws::Message::Ping(msg)) => {
@@ -62,6 +64,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
                 let rec = ctx.address().recipient();
                 let fut = async move {
                     let script: Script = serde_json::from_str(text.trim()).unwrap();
+                    /*
                     let mut child = Command::new("bash")
                         .arg("-c")
                         .arg(&script.lines)
@@ -77,6 +80,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
                         //println!("{}", line.unwrap());
                         rec.do_send(OutLn { line:line.unwrap() } ).expect("Failed to send stdout.");
                     }
+                    */
                 };
                 fut.into_actor(self).spawn(ctx);
             }
@@ -105,6 +109,20 @@ impl MyWS {
             ctx.ping(b"");
         });
     }
+}
+
+async fn enqueue_job(script: String, redis: web::Data<Addr<RedisActor>>) -> Result<HttpResponse, Error> {
+    let res = redis.send(RCmd(resp_array!["RPUSH", "jobQueue", script])).await?;
+    match res {
+        Ok(RespValue::Integer(x)) => {
+            Ok(HttpResponse::Ok().body("Successfully enqueued job"))
+        }
+        _ => {
+            println!("---->{:?}", res);
+            Ok(HttpResponse::InternalServerError().finish())
+        }
+    }
+
 }
 
 #[get("/script")]

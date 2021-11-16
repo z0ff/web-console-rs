@@ -15,6 +15,7 @@ use actix_web::{
     get, post, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder, Result,
 };
 //use actix_web_actors::ws;
+use actix_redis::RedisActor;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::{Deserialize, Serialize};
 use sys_info::*;
@@ -164,7 +165,10 @@ async fn main() -> std::io::Result<()> {
     builder.set_certificate_chain_file("cert.pem").unwrap();
 
     HttpServer::new(|| {
+        let redis_addr = RedisActor::start("127.0.0.1:6379");
+
         App::new()
+            .data(redis_addr)
             .service(index)
             .service(status)
             .service(postcmd)
