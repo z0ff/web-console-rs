@@ -1,8 +1,7 @@
 use actix::prelude::*;
 use actix::AsyncContext;
-use actix_files::NamedFile;
 use actix_web::{
-    get, post, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder, Result,
+    get, post, web, Error, HttpRequest, HttpResponse, Result,
 };
 use actix_web_actors::ws;
 use actix_redis::{Command as RCmd, RedisActor};
@@ -64,7 +63,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
                 let rec = ctx.address().recipient();
                 let fut = async move {
                     let script: Script = serde_json::from_str(text.trim()).unwrap();
-                    /*
                     let mut child = Command::new("bash")
                         .arg("-c")
                         .arg(&script.lines)
@@ -80,7 +78,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
                         //println!("{}", line.unwrap());
                         rec.do_send(OutLn { line:line.unwrap() } ).expect("Failed to send stdout.");
                     }
-                    */
                 };
                 fut.into_actor(self).spawn(ctx);
             }
@@ -114,7 +111,7 @@ impl MyWS {
 async fn enqueue_job(script: String, redis: web::Data<Addr<RedisActor>>) -> Result<HttpResponse, Error> {
     let res = redis.send(RCmd(resp_array!["RPUSH", "jobQueue", script])).await?;
     match res {
-        Ok(RespValue::Integer(x)) => {
+        Ok(RespValue::Integer(_)) => {
             Ok(HttpResponse::Ok().body("Successfully enqueued job"))
         }
         _ => {
@@ -123,11 +120,6 @@ async fn enqueue_job(script: String, redis: web::Data<Addr<RedisActor>>) -> Resu
         }
     }
 
-}
-
-#[get("/script")]
-pub async fn script_index() -> Result<NamedFile> {
-    Ok(NamedFile::open("static/script.html")?)
 }
 
 pub async fn script_start(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
