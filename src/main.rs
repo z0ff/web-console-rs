@@ -46,7 +46,8 @@ async fn main() -> std::io::Result<()> {
             .data(redis_addr)
             .service(index)
             .service(status)
-            .service(web::resource("/script/ws/").route(web::get().to(script_start))
+            .service(enqueue_job)
+            .service(web::resource("/ws/").route(web::get().to(script_start))
         )
         .default_service(
             web::route().to(not_found)
