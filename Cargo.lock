@@ -2346,6 +2346,7 @@ dependencies = [
  "actix-web-actors",
  "dotenv",
  "futures",
+ "once_cell",
  "openssl",
  "redis-async",
  "serde",

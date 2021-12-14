@@ -1,5 +1,5 @@
 [package]
-edition = "2018"
+edition = "2021"
 name = "web-console-rs"
 version = "0.1.0"
 [dependencies]
@@ -11,6 +11,7 @@ actix-redis = "*"
 actix-rt = "*"
 dotenv = "*"
 openssl = { version = "0.10", features = ["v110"] }
+once_cell = "*"
 redis-async = "*"
 sys-info = "*"
 systemstat = "*"

@@ -1,3 +1,8 @@
+use crate::tcp_connector::*;
+
+use std::time::{Duration, Instant};
+use std::str;
+
 use actix::prelude::*;
 use actix::AsyncContext;
 use actix_web::{
@@ -7,10 +12,8 @@ use actix_web_actors::ws;
 use actix_redis::{Command as RCmd, RedisActor};
 use redis_async::{resp::RespValue, resp_array};
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
-use std::str;
-use tokio::io::AsyncReadExt;
-use tokio::net::TcpListener;
+//use tokio::io::AsyncReadExt;
+//use tokio::net::TcpListener;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -20,9 +23,9 @@ struct MyWS {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Script {
+struct Job {
     //user: String,
-    lines: String,
+    script: String,
 }
 
 #[derive(Message)]
@@ -50,7 +53,7 @@ impl Actor for MyWS {
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWS {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError,>, ctx: &mut Self::Context) {
-        println!("WS: {:?}", msg);
+        //println!("WS: {:?}", msg);
         match msg {
             Ok(ws::Message::Ping(msg)) => {
                 self.hb = Instant::now();
@@ -89,7 +92,8 @@ impl MyWS {
     fn recv_tcp(&self, ctx: &mut <Self as Actor>::Context) {
         let rec = ctx.address().recipient();
         let fut = async move {
-            let mut listener = TcpListener::bind("0.0.0.0:33333").await.expect("could not bind tcp connection");
+            /*
+            let mut listener = TcpListener::bind("127.0.0.1:33333").await.expect("could not bind tcp socket");
             loop {
                 let mut buf = [0; 1024];
                 match listener.accept().await {
@@ -103,14 +107,22 @@ impl MyWS {
                 }
                 
             }
+            */
+            loop {
+                let mut outputs = OUTPUTS.get().unwrap().lock().await;
+                while let Some(output) = outputs.pop_front() {
+                    println!("{:?}", &output);
+                    rec.do_send(OutLn { line: output }).expect("failed to send string");
+                }
+            }
         };
         fut.into_actor(self).spawn(ctx);
     }
 }
 
 #[post("/enqueue")]
-async fn enqueue_job(script: web::Json<Script>, redis: web::Data<Addr<RedisActor>>) -> Result<HttpResponse, Error> {
-    let res = redis.send(RCmd(resp_array!["RPUSH", "jobQueue", &script.lines])).await?;
+async fn enqueue_job(job: web::Json<Job>, redis: web::Data<Addr<RedisActor>>) -> Result<HttpResponse, Error> {
+    let res = redis.send(RCmd(resp_array!["RPUSH", "jobQueue", &job.script])).await?;
     match res {
         Ok(RespValue::Integer(_)) => {
             Ok(HttpResponse::Ok().body("Successfully enqueued job"))
